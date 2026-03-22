@@ -1,18 +1,25 @@
 import express from "express";
 import fetch from "node-fetch";
+import path from "path";
+import { fileURLToPath } from "url";
 
 const app = express();
 app.use(express.json());
 
-// 🧠 MEMORY SEDERHANA (disimpan di server)
-const memory = {}; // { userId: [messages] }
+// fix __dirname (karena pakai module)
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
+// 🧠 MEMORY
+const memory = {};
+
+// API CHAT
 app.post("/chat", async (req, res) => {
   try {
     const userMessage = req.body.message || "Halo";
     const userId = req.body.userId || "default";
 
-    // kalau belum ada memory → buat baru
+    // buat memory awal
     if (!memory[userId]) {
       memory[userId] = [
         {
@@ -22,17 +29,17 @@ Kamu adalah AI pribadi milik Amran.
 
 Aturan:
 - Selalu jawab dalam Bahasa Indonesia
-- Gunakan bahasa santai, natural, dan mudah dipahami
-- Jangan terlalu kaku
-- Jawaban harus jelas dan membantu
+- Gunakan bahasa santai, natural, tidak kaku
+- Jawaban maksimal 2-3 kalimat
+- Jawaban harus jelas dan langsung ke inti
 - Anggap Amran adalah owner kamu
-- Ingat semua percakapan user
+- Ingat percakapan user sebelumnya
 `
         }
       ];
     }
 
-    // simpan pesan user ke memory
+    // simpan pesan user
     memory[userId].push({
       role: "user",
       content: userMessage
@@ -46,7 +53,8 @@ Aturan:
       },
       body: JSON.stringify({
         model: "openrouter/auto",
-        messages: memory[userId]
+        messages: memory[userId],
+        max_tokens: 150
       })
     });
 
@@ -56,10 +64,9 @@ Aturan:
 
     const reply =
       data?.choices?.[0]?.message?.content ||
-      data?.choices?.[0]?.text ||
       "Tidak ada jawaban";
 
-    // simpan jawaban AI ke memory
+    // simpan jawaban AI
     memory[userId].push({
       role: "assistant",
       content: reply
@@ -73,8 +80,11 @@ Aturan:
   }
 });
 
+// 🌐 WEBSITE
+app.use(express.static(path.join(__dirname, "public")));
+
 app.get("/", (req, res) => {
-  res.send("AI Amran + Memory aktif 🚀");
+  res.sendFile(path.join(__dirname, "public/index.html"));
 });
 
 app.listen(3000, () => {

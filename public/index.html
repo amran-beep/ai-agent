@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <title>AI Amran</title>
+  <style>
+    body {
+      font-family: Arial;
+      background: #0f172a;
+      color: white;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    #chat {
+      width: 90%;
+      max-width: 600px;
+      height: 400px;
+      overflow-y: auto;
+      border: 1px solid #333;
+      padding: 10px;
+      margin-top: 20px;
+      background: #020617;
+    }
+
+    .msg {
+      margin: 10px 0;
+    }
+
+    .user { color: #38bdf8; }
+    .ai { color: #22c55e; }
+
+    #inputArea {
+      margin-top: 10px;
+      display: flex;
+      width: 90%;
+      max-width: 600px;
+    }
+
+    input {
+      flex: 1;
+      padding: 10px;
+      border: none;
+    }
+
+    button {
+      padding: 10px;
+      background: #22c55e;
+      border: none;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+
+<h2>🤖 AI Amran</h2>
+
+<div id="chat"></div>
+
+<div id="inputArea">
+  <input id="input" placeholder="Tulis pesan..." />
+  <button onclick="send()">Kirim</button>
+</div>
+
+<script>
+  const API_URL = "https://ai-agent-1-bqks.onrender.com/chat"; // ganti jika beda
+  const userId = "user1";
+
+  function addMessage(text, sender) {
+    const div = document.createElement("div");
+    div.className = "msg " + sender;
+    div.innerText = (sender === "user" ? "Kamu: " : "AI: ") + text;
+    document.getElementById("chat").appendChild(div);
+    document.getElementById("chat").scrollTop = 9999;
+  }
+
+  async function send() {
+    const input = document.getElementById("input");
+    const message = input.value;
+
+    if (!message) return;
+
+    addMessage(message, "user");
+    input.value = "";
+
+    const res = await fetch(API_URL, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        message,
+        userId
+      })
+    });
+
+    const data = await res.json();
+    addMessage(data.reply, "ai");
+  }
+</script>
+
+</body>
+</html>

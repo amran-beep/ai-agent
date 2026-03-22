@@ -21,7 +21,7 @@ body {
   font-weight: bold;
 }
 
-/* CHAT */
+/* CHAT AREA */
 #chat {
   height: 60vh;
   overflow-y: auto;
@@ -35,7 +35,7 @@ body {
   margin: 10px 0;
   max-width: 70%;
   animation: fadeIn 0.3s ease;
-  white-space: pre-line;
+  white-space: pre-wrap;
 }
 
 .user {
@@ -57,17 +57,18 @@ body {
 
 #inputArea input {
   flex: 1;
-  padding: 10px;
-  border-radius: 8px;
+  padding: 12px;
+  border-radius: 10px;
   border: none;
+  outline: none;
 }
 
 #inputArea button {
   margin-left: 10px;
-  padding: 10px 20px;
+  padding: 12px 20px;
   background: #22c55e;
   border: none;
-  border-radius: 8px;
+  border-radius: 10px;
   cursor: pointer;
 }
 
@@ -97,22 +98,23 @@ body {
   font-size: 15px;
 }
 
-/* HEADING */
+/* PREMIUM FORMAT */
 .result h2 {
-  margin-top: 20px;
   font-size: 20px;
-  border-bottom: 1px solid #333;
-  padding-bottom: 5px;
+  margin-top: 20px;
+  border-left: 4px solid #22c55e;
+  padding-left: 10px;
 }
 
 .result h3 {
-  margin-top: 15px;
   font-size: 16px;
-  color: #22c55e;
+  margin-top: 15px;
+  color: #38bdf8;
 }
 
-/* LIST */
 .result ul {
+  margin-top: 10px;
+  margin-bottom: 10px;
   padding-left: 20px;
 }
 
@@ -120,7 +122,6 @@ body {
   margin: 6px 0;
 }
 
-/* BOLD */
 .result b {
   color: #22c55e;
 }
@@ -157,7 +158,9 @@ const API = "";
 
 // ================= CHAT =================
 async function send() {
-  const text = msg.value;
+  const text = msg.value.trim();
+  if (!text) return;
+
   addMsg(text, "user");
 
   const res = await fetch(API + "/chat", {
@@ -167,50 +170,38 @@ async function send() {
   });
 
   const data = await res.json();
-  typeEffect(data.reply);
+
+  addMsg(formatText(data.reply), "ai");
 
   msg.value = "";
 }
 
+// ================= MESSAGE =================
 function addMsg(text, type) {
   const div = document.createElement("div");
   div.className = "msg " + type;
-  div.innerText = text;
+
+  if (type === "ai") {
+    div.innerHTML = text;
+  } else {
+    div.innerText = text;
+  }
+
   chat.appendChild(div);
   chat.scrollTop = chat.scrollHeight;
 }
 
-// ================= TYPING EFFECT =================
-function typeEffect(text) {
-  const div = document.createElement("div");
-  div.className = "msg ai";
-  chat.appendChild(div);
-
-  let i = 0;
-
-  function typing() {
-    if (i < text.length) {
-      div.innerText += text.charAt(i);
-      i++;
-      setTimeout(typing, 10);
-      chat.scrollTop = chat.scrollHeight;
-    }
-  }
-
-  typing();
-}
-
 // ================= DRAG DROP =================
-document.getElementById("dropZone").addEventListener("dragover", e => {
+dropZone.addEventListener("dragover", e => {
   e.preventDefault();
   dropZone.classList.add("dragover");
 });
 
-document.getElementById("dropZone").addEventListener("dragleave", () => {
+dropZone.addEventListener("dragleave", () => {
   dropZone.classList.remove("dragover");
 });
 
-document.getElementById("dropZone").addEventListener("drop", e => {
+dropZone.addEventListener("drop", e => {
   e.preventDefault();
   dropZone.classList.remove("dragover");
 
@@ -218,14 +209,14 @@ document.getElementById("dropZone").addEventListener("drop", e => {
   handleFile(file);
 });
 
-document.getElementById("file").addEventListener("change", e => {
+file.addEventListener("change", e => {
   handleFile(e.target.files[0]);
 });
 
 // ================= UPLOAD =================
-async function handleFile(file) {
+async function handleFile(fileData) {
   const formData = new FormData();
-  formData.append("file", file);
+  formData.append("file", fileData);
 
   result.innerHTML = "⏳ Menganalisis laporan...";
 
@@ -239,24 +230,25 @@ async function handleFile(file) {
   result.innerHTML = formatText(data.result);
 }
 
-// ================= FORMAT TEXT =================
+// ================= FORMAT TEXT (FIX FINAL) =================
 function formatText(text) {
   let html = text;
 
-  // Heading ##
+  html = html.replace(/\r\n/g, "\n");
+
+  // headings
+  html = html.replace(/^### (.*$)/gim, '<h3>$1</h3>');
   html = html.replace(/^## (.*$)/gim, '<h2>$1</h2>');
 
-  // Sub heading ###
-  html = html.replace(/^### (.*$)/gim, '<h3>$1</h3>');
-
-  // Bold **
+  // bold
   html = html.replace(/\*\*(.*?)\*\*/g, '<b>$1</b>');
 
-  // Bullet *
+  // bullet
   html = html.replace(/^\* (.*$)/gim, '<li>$1</li>');
-  html = html.replace(/(<li>.*<\/li>)/gim, '<ul>$1</ul>');
+  html = html.replace(/(<li>.*<\/li>)/gims, '<ul>$1</ul>');
 
-  // Line break
+  // spacing
+  html = html.replace(/\n\n/g, "<br><br>");
   html = html.replace(/\n/g, "<br>");
 
   return html;

@@ -1,103 +1,214 @@
 <!DOCTYPE html>
 <html lang="id">
 <head>
-  <meta charset="UTF-8">
-  <title>AI Amran</title>
-  <style>
-    body {
-      font-family: Arial;
-      background: #0f172a;
-      color: white;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-    }
+<meta charset="UTF-8">
+<title>AI Amran Pro</title>
 
-    #chat {
-      width: 90%;
-      max-width: 600px;
-      height: 400px;
-      overflow-y: auto;
-      border: 1px solid #333;
-      padding: 10px;
-      margin-top: 20px;
-      background: #020617;
-    }
+<style>
+body {
+  margin: 0;
+  font-family: Arial;
+  background: #0f172a;
+  color: white;
+  display: flex;
+  height: 100vh;
+}
 
-    .msg {
-      margin: 10px 0;
-    }
+/* LOGIN */
+#loginPage {
+  margin: auto;
+  text-align: center;
+}
 
-    .user { color: #38bdf8; }
-    .ai { color: #22c55e; }
+input {
+  padding: 10px;
+  margin: 5px;
+}
 
-    #inputArea {
-      margin-top: 10px;
-      display: flex;
-      width: 90%;
-      max-width: 600px;
-    }
+button {
+  padding: 10px;
+  margin: 5px;
+  cursor: pointer;
+}
 
-    input {
-      flex: 1;
-      padding: 10px;
-      border: none;
-    }
+/* APP */
+#app {
+  display: none;
+  width: 100%;
+}
 
-    button {
-      padding: 10px;
-      background: #22c55e;
-      border: none;
-      cursor: pointer;
-    }
-  </style>
+/* SIDEBAR */
+#sidebar {
+  width: 250px;
+  background: #020617;
+  border-right: 1px solid #1e293b;
+  display: flex;
+  flex-direction: column;
+}
+
+#newChat {
+  padding: 15px;
+  background: #22c55e;
+  border: none;
+}
+
+#history {
+  flex: 1;
+  overflow-y: auto;
+}
+
+/* MAIN */
+#main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+#chat {
+  flex: 1;
+  padding: 20px;
+  overflow-y: auto;
+}
+
+.bubble {
+  padding: 10px;
+  margin: 5px;
+  border-radius: 10px;
+  max-width: 60%;
+}
+
+.user { background: #2563eb; margin-left: auto; }
+.ai { background: #1e293b; }
+
+/* INPUT */
+#inputArea {
+  display: flex;
+  padding: 10px;
+  border-top: 1px solid #1e293b;
+}
+
+#input {
+  flex: 1;
+  padding: 10px;
+}
+</style>
+
 </head>
 <body>
 
-<h2>🤖 AI Amran</h2>
+<!-- LOGIN -->
+<div id="loginPage">
+  <h2>Login AI Amran</h2>
+  <input id="email" placeholder="Email"><br>
+  <input id="password" type="password" placeholder="Password"><br>
+  <button onclick="register()">Register</button>
+  <button onclick="login()">Login</button>
+</div>
+
+<!-- APP -->
+<div id="app">
+
+<div id="sidebar">
+  <button id="newChat" onclick="newChat()">+ Chat</button>
+  <div id="history"></div>
+</div>
+
+<div id="main">
 
 <div id="chat"></div>
 
 <div id="inputArea">
-  <input id="input" placeholder="Tulis pesan..." />
+  <input id="input" placeholder="Tulis pesan...">
   <button onclick="send()">Kirim</button>
 </div>
 
+</div>
+
+</div>
+
 <script>
-  const API_URL = "https://ai-agent-1-bqks.onrender.com/chat"; // ganti jika beda
-  const userId = "user1";
+let token = "";
+let chats = {};
+let currentChat = "chat1";
 
-  function addMessage(text, sender) {
-    const div = document.createElement("div");
-    div.className = "msg " + sender;
-    div.innerText = (sender === "user" ? "Kamu: " : "AI: ") + text;
-    document.getElementById("chat").appendChild(div);
-    document.getElementById("chat").scrollTop = 9999;
-  }
+// ================= LOGIN =================
 
-  async function send() {
-    const input = document.getElementById("input");
-    const message = input.value;
+async function register() {
+  await fetch("/register", {
+    method:"POST",
+    headers:{"Content-Type":"application/json"},
+    body: JSON.stringify({
+      email: email.value,
+      password: password.value
+    })
+  });
 
-    if (!message) return;
+  alert("Register berhasil");
+}
 
-    addMessage(message, "user");
-    input.value = "";
+async function login() {
+  const res = await fetch("/login", {
+    method:"POST",
+    headers:{"Content-Type":"application/json"},
+    body: JSON.stringify({
+      email: email.value,
+      password: password.value
+    })
+  });
 
-    const res = await fetch(API_URL, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({
-        message,
-        userId
-      })
-    });
+  const data = await res.json();
 
-    const data = await res.json();
-    addMessage(data.reply, "ai");
-  }
+  token = data.token;
+
+  document.getElementById("loginPage").style.display = "none";
+  document.getElementById("app").style.display = "flex";
+}
+
+// ================= CHAT =================
+
+function addMessage(text, sender) {
+  const div = document.createElement("div");
+  div.className = "bubble " + sender;
+  div.innerText = text;
+
+  chat.appendChild(div);
+  chat.scrollTop = 9999;
+}
+
+async function send() {
+  const message = input.value;
+  if (!message) return;
+
+  addMessage(message, "user");
+  input.value = "";
+
+  addMessage("...", "ai");
+
+  const res = await fetch("/chat", {
+    method:"POST",
+    headers:{
+      "Content-Type":"application/json",
+      "Authorization":"Bearer "+token
+    },
+    body: JSON.stringify({
+      message,
+      userId: currentChat
+    })
+  });
+
+  const data = await res.json();
+
+  chat.lastChild.remove();
+  addMessage(data.reply, "ai");
+}
+
+// ================= CHAT LIST =================
+
+function newChat() {
+  currentChat = "chat" + Date.now();
+  chats[currentChat] = [];
+}
+
 </script>
 
 </body>

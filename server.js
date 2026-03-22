@@ -10,22 +10,20 @@ const client = new OpenAI({
 
 app.post("/chat", async (req, res) => {
   try {
-    const userMessage = req.body.message;
+    const userMessage = req.body.message || "Halo";
 
-    const completion = await client.chat.completions.create({
+    const response = await client.responses.create({
       model: "gpt-4o-mini",
-      messages: [
-        { role: "system", content: "Kamu adalah AI yang ramah, pintar, dan membantu." },
-        { role: "user", content: userMessage },
-      ],
+      input: userMessage,
     });
 
-    const reply = completion.choices[0].message.content;
+    const reply = response.output[0].content[0].text;
 
     res.json({ reply });
+
   } catch (error) {
     console.error(error);
-    res.status(500).json({ error: "Terjadi error dari AI" });
+    res.status(500).json({ error: error.message });
   }
 });
 
@@ -34,5 +32,5 @@ app.get("/", (req, res) => {
 });
 
 app.listen(3000, () => {
-  console.log("Server jalan di port 3000");
+  console.log("Server jalan");
 });

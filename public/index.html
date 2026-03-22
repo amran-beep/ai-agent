@@ -157,7 +157,13 @@ body {
 const API = "";
 
 // ================= CHAT =================
-async function send() {
+msg.addEventListener("keydown", function(e) {
+  if (e.key === "Enter") {
+    e.preventDefault();
+    send();
+  }
+});
+  async function send() {
   const text = msg.value.trim();
   if (!text) return;
 

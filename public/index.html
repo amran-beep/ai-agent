@@ -163,9 +163,41 @@ msg.addEventListener("keydown", function(e) {
     send();
   }
 });
-  async function send() {
+ async function send() {
   const text = msg.value.trim();
   if (!text) return;
+
+  addMsg(text, "user");
+
+  // DETEKSI GAMBAR
+  if (text.toLowerCase().includes("gambar")) {
+
+    addMsg("🎨 Membuat gambar...", "ai");
+
+    const res = await fetch(API + "/image", {
+      method: "POST",
+      headers: {"Content-Type":"application/json"},
+      body: JSON.stringify({ prompt: text })
+    });
+
+    const data = await res.json();
+
+    addImage(data.image);
+
+  } else {
+    const res = await fetch(API + "/chat", {
+      method: "POST",
+      headers: {"Content-Type":"application/json"},
+      body: JSON.stringify({ message: text })
+    });
+
+    const data = await res.json();
+
+    addMsg(formatText(data.reply), "ai");
+  }
+
+  msg.value = "";
+}
 
   addMsg(text, "user");
 

@@ -165,7 +165,34 @@ Gunakan bahasa Indonesia profesional tapi tetap natural.
     res.status(500).json({ error: err.message });
   }
 });
+app.post("/image", async (req, res) => {
+  try {
+    const prompt = req.body.prompt;
 
+    const response = await fetch("https://openrouter.ai/api/v1/images/generations", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${process.env.OPENROUTER_API_KEY}`,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        model: "stability-ai/sdxl",
+        prompt: prompt,
+        size: "1024x1024"
+      })
+    });
+
+    const data = await response.json();
+
+    const imageUrl = data.data?.[0]?.url;
+
+    res.json({ image: imageUrl });
+
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Gagal generate gambar" });
+  }
+});
 // ================= HISTORY =================
 app.get("/history", (req, res) => {
   db.all("SELECT * FROM chats ORDER BY id DESC LIMIT 20", [], (err, rows) => {

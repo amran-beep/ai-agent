@@ -10,146 +10,132 @@ body {
   font-family: Arial;
   background: #0f172a;
   color: white;
-  display: flex;
-  height: 100vh;
 }
 
 /* LOGIN */
-#loginPage {
-  margin: auto;
-  text-align: center;
+#auth {
+  display: flex;
+  height: 100vh;
+  justify-content: center;
+  align-items: center;
+}
+
+.card {
+  background: #020617;
+  padding: 30px;
+  border-radius: 12px;
+  width: 300px;
 }
 
 input {
-  padding: 10px;
-  margin: 5px;
-}
-
-button {
-  padding: 10px;
-  margin: 5px;
-  cursor: pointer;
-}
-
-/* APP */
-#app {
-  display: none;
   width: 100%;
-}
-
-/* SIDEBAR */
-#sidebar {
-  width: 250px;
-  background: #020617;
-  border-right: 1px solid #1e293b;
-  display: flex;
-  flex-direction: column;
-}
-
-#newChat {
-  padding: 15px;
-  background: #22c55e;
+  padding: 10px;
+  margin: 5px 0;
+  border-radius: 8px;
   border: none;
 }
 
-#history {
-  flex: 1;
-  overflow-y: auto;
+button {
+  width: 100%;
+  padding: 10px;
+  margin-top: 10px;
+  border-radius: 8px;
+  border: none;
+  background: #22c55e;
+  color: black;
+  cursor: pointer;
 }
 
-/* MAIN */
-#main {
-  flex: 1;
+/* CHAT */
+#app {
+  display: none;
+  height: 100vh;
   display: flex;
   flex-direction: column;
 }
 
 #chat {
   flex: 1;
-  padding: 20px;
   overflow-y: auto;
+  padding: 20px;
 }
 
-.bubble {
-  padding: 10px;
-  margin: 5px;
-  border-radius: 10px;
-  max-width: 60%;
+.msg {
+  margin: 10px 0;
+  max-width: 70%;
+  padding: 12px;
+  border-radius: 12px;
 }
 
-.user { background: #2563eb; margin-left: auto; }
-.ai { background: #1e293b; }
+.user {
+  background: #2563eb;
+  align-self: flex-end;
+}
+
+.ai {
+  background: #020617;
+  border: 1px solid #333;
+}
 
 /* INPUT */
 #inputArea {
   display: flex;
   padding: 10px;
-  border-top: 1px solid #1e293b;
+  background: #020617;
 }
 
-#input {
+#inputArea input {
   flex: 1;
-  padding: 10px;
+}
+
+#uploadBox {
+  border: 2px dashed #555;
+  padding: 15px;
+  text-align: center;
+  margin: 10px;
+  border-radius: 10px;
 }
 </style>
-
 </head>
+
 <body>
 
 <!-- LOGIN -->
-<div id="loginPage">
-  <h2>Login AI Amran</h2>
-  <input id="email" placeholder="Email"><br>
-  <input id="password" type="password" placeholder="Password"><br>
-  <button onclick="register()">Register</button>
-  <button onclick="login()">Login</button>
+<div id="auth">
+  <div class="card">
+    <h3>Login / Register</h3>
+    <input id="email" placeholder="Email">
+    <input id="password" type="password" placeholder="Password">
+    <button onclick="login()">Login</button>
+    <button onclick="register()">Register</button>
+  </div>
 </div>
 
 <!-- APP -->
 <div id="app">
+  <div id="chat"></div>
 
-<div id="sidebar">
-  <button id="newChat" onclick="newChat()">+ Chat</button>
-  <div id="history"></div>
-</div>
+  <div id="uploadBox">
+    Upload laporan (PDF/TXT)
+    <input type="file" id="file">
+    <button onclick="upload()">Analisis</button>
+  </div>
 
-<div id="main">
-
-<div id="chat"></div>
-
-<div id="inputArea">
-  <input id="input" placeholder="Tulis pesan...">
-  <button onclick="send()">Kirim</button>
-</div>
-
-</div>
-
+  <div id="inputArea">
+    <input id="msg" placeholder="Tulis pesan...">
+    <button onclick="send()">Kirim</button>
+  </div>
 </div>
 
 <script>
+const API = "";
 let token = "";
-let chats = {};
-let currentChat = "chat1";
 
 // ================= LOGIN =================
-
-async function register() {
-  await fetch("/register", {
-    method:"POST",
-    headers:{"Content-Type":"application/json"},
-    body: JSON.stringify({
-      email: email.value,
-      password: password.value
-    })
-  });
-
-  alert("Register berhasil");
-}
-
 async function login() {
-  const res = await fetch("/login", {
-    method:"POST",
-    headers:{"Content-Type":"application/json"},
+  const res = await fetch(API + "/login", {
+    method: "POST",
+    headers: {"Content-Type":"application/json"},
     body: JSON.stringify({
       email: email.value,
       password: password.value
@@ -158,57 +144,74 @@ async function login() {
 
   const data = await res.json();
 
-  token = data.token;
+  if (data.token) {
+    token = data.token;
+    auth.style.display = "none";
+    app.style.display = "flex";
+  } else {
+    alert("Login gagal");
+  }
+}
 
-  document.getElementById("loginPage").style.display = "none";
-  document.getElementById("app").style.display = "flex";
+// ================= REGISTER =================
+async function register() {
+  await fetch(API + "/register", {
+    method: "POST",
+    headers: {"Content-Type":"application/json"},
+    body: JSON.stringify({
+      email: email.value,
+      password: password.value
+    })
+  });
+
+  alert("Register sukses, silakan login");
 }
 
 // ================= CHAT =================
+async function send() {
+  const text = msg.value;
+  addMsg(text, "user");
 
-function addMessage(text, sender) {
-  const div = document.createElement("div");
-  div.className = "bubble " + sender;
-  div.innerText = text;
+  const res = await fetch(API + "/chat", {
+    method: "POST",
+    headers: {
+      "Content-Type":"application/json",
+      "Authorization": "Bearer " + token
+    },
+    body: JSON.stringify({ message: text })
+  });
 
-  chat.appendChild(div);
-  chat.scrollTop = 9999;
+  const data = await res.json();
+  addMsg(data.reply, "ai");
+
+  msg.value = "";
 }
 
-async function send() {
-  const message = input.value;
-  if (!message) return;
+function addMsg(text, type) {
+  const div = document.createElement("div");
+  div.className = "msg " + type;
+  div.innerText = text;
+  chat.appendChild(div);
+  chat.scrollTop = chat.scrollHeight;
+}
 
-  addMessage(message, "user");
-  input.value = "";
+// ================= UPLOAD =================
+async function upload() {
+  const fileInput = document.getElementById("file");
+  const formData = new FormData();
+  formData.append("file", fileInput.files[0]);
 
-  addMessage("...", "ai");
+  addMsg("⏳ Menganalisis laporan...", "ai");
 
-  const res = await fetch("/chat", {
-    method:"POST",
-    headers:{
-      "Content-Type":"application/json",
-      "Authorization":"Bearer "+token
-    },
-    body: JSON.stringify({
-      message,
-      userId: currentChat
-    })
+  const res = await fetch(API + "/upload", {
+    method: "POST",
+    body: formData
   });
 
   const data = await res.json();
 
-  chat.lastChild.remove();
-  addMessage(data.reply, "ai");
+  addMsg(data.result, "ai");
 }
-
-// ================= CHAT LIST =================
-
-function newChat() {
-  currentChat = "chat" + Date.now();
-  chats[currentChat] = [];
-}
-
 </script>
 
 </body>

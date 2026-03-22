@@ -15,8 +15,9 @@ app.post("/chat", async (req, res) => {
         "Content-Type": "application/json"
       },
       body: JSON.stringify({
-        model: "mistralai/mistral-7b-instruct",
+        model: "openchat/openchat-3.5",
         messages: [
+          { role: "system", content: "Kamu adalah AI pintar, ramah, dan membantu." },
           { role: "user", content: userMessage }
         ]
       })
@@ -24,12 +25,18 @@ app.post("/chat", async (req, res) => {
 
     const data = await response.json();
 
-    const reply = data?.choices?.[0]?.message?.content || "Tidak ada jawaban";
+    // DEBUG (lihat di Render logs)
+    console.log("FULL RESPONSE:", JSON.stringify(data, null, 2));
+
+    const reply =
+      data?.choices?.[0]?.message?.content ||
+      data?.choices?.[0]?.text ||
+      "Tidak ada jawaban";
 
     res.json({ reply });
 
   } catch (error) {
-    console.error(error);
+    console.error("ERROR:", error);
     res.status(500).json({ error: error.message });
   }
 });
@@ -39,5 +46,5 @@ app.get("/", (req, res) => {
 });
 
 app.listen(3000, () => {
-  console.log("Server jalan");
+  console.log("Server jalan di port 3000");
 });

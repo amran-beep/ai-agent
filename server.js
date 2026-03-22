@@ -1,4 +1,5 @@
 import express from "express";
+import fetch from "node-fetch";
 
 const app = express();
 app.use(express.json());
@@ -14,7 +15,7 @@ app.post("/chat", async (req, res) => {
         "Content-Type": "application/json"
       },
       body: JSON.stringify({
-        model: "mistralai/mistral-7b-instruct", // GRATIS
+        model: "mistralai/mistral-7b-instruct",
         messages: [
           { role: "user", content: userMessage }
         ]
@@ -23,7 +24,7 @@ app.post("/chat", async (req, res) => {
 
     const data = await response.json();
 
-    const reply = data.choices?.[0]?.message?.content || "Tidak ada jawaban";
+    const reply = data?.choices?.[0]?.message?.content || "Tidak ada jawaban";
 
     res.json({ reply });
 
@@ -35,12 +36,6 @@ app.post("/chat", async (req, res) => {
 
 app.get("/", (req, res) => {
   res.send("AI GRATIS aktif 🚀");
-});
-
-app.listen(3000, () => {
-  console.log("Server jalan");
-});
-  res.send("AI OpenAI aktif 🚀");
 });
 
 app.listen(3000, () => {

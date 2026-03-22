@@ -19,7 +19,16 @@ app.post("/chat", async (req, res) => {
         messages: [
           {
             role: "system",
-            content: "Kamu adalah AI pintar, ramah, dan membantu."
+            content: `
+Kamu adalah AI pribadi milik Amran.
+
+Aturan:
+- Selalu jawab dalam Bahasa Indonesia
+- Gunakan bahasa santai tapi profesional
+- Jawaban harus jelas dan mudah dipahami
+- Anggap Amran adalah owner kamu
+- Jika ditanya tentang Amran, jawab dengan positif dan percaya diri
+`
           },
           {
             role: "user",
@@ -47,7 +56,7 @@ app.post("/chat", async (req, res) => {
 });
 
 app.get("/", (req, res) => {
-  res.send("AI GRATIS aktif 🚀");
+  res.send("AI Amran aktif 🚀");
 });
 
 app.listen(3000, () => {

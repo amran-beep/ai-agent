@@ -15,11 +15,11 @@ app.post("/chat", async (req, res) => {
         "Content-Type": "application/json"
       },
       body: JSON.stringify({
-        model: "openchat/openchat-3.5",
+        model: "mistralai/mistral-7b-instruct",
         messages: [
           {
             role: "system",
-            content: "Kamu adalah AI pintar, ramah, dan membantu menjawab dengan jelas."
+            content: "Kamu adalah AI pintar, ramah, dan membantu."
           },
           {
             role: "user",
@@ -31,13 +31,10 @@ app.post("/chat", async (req, res) => {
 
     const data = await response.json();
 
-    // DEBUG (penting untuk lihat struktur response)
     console.log("FULL RESPONSE:", JSON.stringify(data, null, 2));
 
-    // FIX parsing semua kemungkinan format
     const reply =
       data?.choices?.[0]?.message?.content ||
-      data?.choices?.[0]?.delta?.content ||
       data?.choices?.[0]?.text ||
       JSON.stringify(data);
 

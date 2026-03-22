@@ -12,34 +12,48 @@ import { initDB } from "./db.js";
 const app = express();
 app.use(express.json());
 
+// ================= INIT =================
 const db = await initDB();
 const SECRET = "amran_secret";
 
-const upload = multer({ dest: "uploads/" });
-
+// ================= FILE PATH =================
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// ================= LOGIN =================
+// ================= UPLOAD =================
+const upload = multer({ dest: "uploads/" });
 
+// ================= MEMORY =================
+const memory = {};
+
+// ================= REGISTER =================
 app.post("/register", async (req, res) => {
   const { email, password } = req.body;
-  const hash = await bcrypt.hash(password, 10);
 
   try {
-    await db.run("INSERT INTO users (email, password) VALUES (?, ?)", [email, hash]);
+    const hash = await bcrypt.hash(password, 10);
+
+    await db.run(
+      "INSERT INTO users (email, password) VALUES (?, ?)",
+      [email, hash]
+    );
+
     res.json({ message: "Register berhasil" });
   } catch {
-    res.status(400).json({ error: "Email sudah ada" });
+    res.status(400).json({ error: "Email sudah digunakan" });
   }
 });
 
+// ================= LOGIN =================
 app.post("/login", async (req, res) => {
   const { email, password } = req.body;
 
-  const user = await db.get("SELECT * FROM users WHERE email = ?", [email]);
+  const user = await db.get(
+    "SELECT * FROM users WHERE email = ?",
+    [email]
+  );
 
-  if (!user) return res.status(400).json({ error: "User tidak ada" });
+  if (!user) return res.status(400).json({ error: "User tidak ditemukan" });
 
   const valid = await bcrypt.compare(password, user.password);
 
@@ -51,110 +65,177 @@ app.post("/login", async (req, res) => {
 });
 
 // ================= CHAT =================
-
-const memory = {};
-
 app.post("/chat", async (req, res) => {
-  const userMessage = req.body.message;
-  const token = req.headers.authorization?.split(" ")[1];
+  try {
+    const userMessage = req.body.message || "Halo";
 
-  let userIdDB = null;
+    const token = req.headers.authorization?.split(" ")[1];
+    let userIdDB = "guest";
 
-  if (token) {
-    const decoded = jwt.verify(token, SECRET);
-    userIdDB = decoded.id;
-  }
+    if (token) {
+      const decoded = jwt.verify(token, SECRET);
+      userIdDB = decoded.id;
+    }
 
-  if (!memory[userIdDB]) {
-    memory[userIdDB] = [
+    // init memory
+    if (!memory[userIdDB]) {
+      memory[userIdDB] = [
+        {
+          role: "system",
+          content: `
+Kamu adalah AI pribadi milik Amran.
+
+Gaya bicara:
+- Santai, natural, seperti teman ngobrol
+- Bahasa Indonesia sehari-hari
+- Tidak kaku
+- Jawaban singkat & jelas
+
+Kepribadian:
+- Ramah, pintar, santai
+- Kadang pakai kata: "ya", "oke", "nah", "sip"
+`
+        }
+      ];
+    }
+
+    memory[userIdDB].push({
+      role: "user",
+      content: userMessage
+    });
+
+    const response = await fetch(
+      "https://openrouter.ai/api/v1/chat/completions",
       {
-        role: "system",
-        content: "Jawab santai, natural, bahasa Indonesia"
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${process.env.OPENROUTER_API_KEY}`,
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          model: "openrouter/auto",
+          messages: memory[userIdDB],
+          temperature: 0.8
+        })
       }
-    ];
-  }
-
-  memory[userIdDB].push({ role: "user", content: userMessage });
-
-  const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
-    method: "POST",
-    headers: {
-      "Authorization": `Bearer ${process.env.OPENROUTER_API_KEY}`,
-      "Content-Type": "application/json"
-    },
-    body: JSON.stringify({
-      model: "openrouter/auto",
-      messages: memory[userIdDB]
-    })
-  });
-
-  const data = await response.json();
-
-  const reply = data?.choices?.[0]?.message?.content || "Tidak ada jawaban";
-
-  memory[userIdDB].push({ role: "assistant", content: reply });
-
-  if (userIdDB) {
-    await db.run(
-      "INSERT INTO chats (userId, message, reply) VALUES (?, ?, ?)",
-      [userIdDB, userMessage, reply]
     );
-  }
 
-  res.json({ reply });
+    const data = await response.json();
+
+    const reply =
+      data?.choices?.[0]?.message?.content ||
+      "Maaf, tidak ada jawaban";
+
+    memory[userIdDB].push({
+      role: "assistant",
+      content: reply
+    });
+
+    // simpan ke DB
+    if (userIdDB !== "guest") {
+      await db.run(
+        "INSERT INTO chats (userId, message, reply) VALUES (?, ?, ?)",
+        [userIdDB, userMessage, reply]
+      );
+    }
+
+    res.json({ reply });
+
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: error.message });
+  }
 });
 
-// ================= UPLOAD =================
-
+// ================= UPLOAD + ANALISIS =================
 app.post("/upload", upload.single("file"), async (req, res) => {
-  const buffer = fs.readFileSync(req.file.path);
-  const pdfData = await pdf(buffer);
+  try {
+    const filePath = req.file.path;
+    let text = "";
 
-  const prompt = `
+    if (req.file.mimetype === "application/pdf") {
+      const buffer = fs.readFileSync(filePath);
+      const pdfData = await pdf(buffer);
+      text = pdfData.text;
+    } else {
+      text = fs.readFileSync(filePath, "utf8");
+    }
+
+    const prompt = `
 Analisis laporan berikut:
-${pdfData.text.substring(0, 3000)}
+
+${text.substring(0, 4000)}
 
 Buat:
 1. Ringkasan
-2. Masalah
+2. Masalah utama
 3. Rekomendasi
 `;
 
-  const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
-    method: "POST",
-    headers: {
-      "Authorization": `Bearer ${process.env.OPENROUTER_API_KEY}`,
-      "Content-Type": "application/json"
-    },
-    body: JSON.stringify({
-      model: "openrouter/auto",
-      messages: [{ role: "user", content: prompt }]
-    })
-  });
+    const response = await fetch(
+      "https://openrouter.ai/api/v1/chat/completions",
+      {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${process.env.OPENROUTER_API_KEY}`,
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          model: "openrouter/auto",
+          messages: [
+            { role: "user", content: prompt }
+          ]
+        })
+      }
+    );
 
-  const data = await response.json();
+    const data = await response.json();
 
-  res.json({
-    result: data?.choices?.[0]?.message?.content
-  });
+    const result =
+      data?.choices?.[0]?.message?.content ||
+      "Gagal analisis";
+
+    res.json({ result });
+
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
 });
 
 // ================= HISTORY =================
-
 app.get("/history", async (req, res) => {
-  const token = req.headers.authorization.split(" ")[1];
-  const decoded = jwt.verify(token, SECRET);
+  try {
+    const token = req.headers.authorization?.split(" ")[1];
 
-  const chats = await db.all(
-    "SELECT * FROM chats WHERE userId = ? ORDER BY id DESC",
-    [decoded.id]
-  );
+    if (!token) {
+      return res.status(401).json({ error: "Unauthorized" });
+    }
 
-  res.json(chats);
+    const decoded = jwt.verify(token, SECRET);
+
+    const chats = await db.all(
+      "SELECT * FROM chats WHERE userId = ? ORDER BY id DESC",
+      [decoded.id]
+    );
+
+    res.json(chats);
+
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
 });
 
 // ================= FRONTEND =================
-
 app.use(express.static(path.join(__dirname, "public")));
 
-app.listen(3000, () => console.log("Server jalan 🚀"));
+// ================= ROOT =================
+app.get("/", (req, res) => {
+  res.sendFile(path.join(__dirname, "public/index.html"));
+});
+
+// ================= PORT FIX (WAJIB UNTUK RENDER) =================
+const PORT = process.env.PORT || 3000;
+
+app.listen(PORT, () => {
+  console.log("Server jalan di port", PORT);
+});

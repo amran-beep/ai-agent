@@ -88,12 +88,41 @@ body {
 
 /* RESULT */
 .result {
-  margin: 15px;
-  padding: 20px;
+  margin: 20px;
+  padding: 25px;
   background: #020617;
-  border-radius: 12px;
-  border: 1px solid #333;
-  line-height: 1.6;
+  border-radius: 14px;
+  border: 1px solid #222;
+  line-height: 1.8;
+  font-size: 15px;
+}
+
+/* HEADING */
+.result h2 {
+  margin-top: 20px;
+  font-size: 20px;
+  border-bottom: 1px solid #333;
+  padding-bottom: 5px;
+}
+
+.result h3 {
+  margin-top: 15px;
+  font-size: 16px;
+  color: #22c55e;
+}
+
+/* LIST */
+.result ul {
+  padding-left: 20px;
+}
+
+.result li {
+  margin: 6px 0;
+}
+
+/* BOLD */
+.result b {
+  color: #22c55e;
 }
 
 /* ANIMATION */
@@ -158,13 +187,12 @@ function typeEffect(text) {
   chat.appendChild(div);
 
   let i = 0;
-  const speed = 15;
 
   function typing() {
     if (i < text.length) {
       div.innerText += text.charAt(i);
       i++;
-      setTimeout(typing, speed);
+      setTimeout(typing, 10);
       chat.scrollTop = chat.scrollHeight;
     }
   }
@@ -172,7 +200,7 @@ function typeEffect(text) {
   typing();
 }
 
-// ================= UPLOAD =================
+// ================= DRAG DROP =================
 document.getElementById("dropZone").addEventListener("dragover", e => {
   e.preventDefault();
   dropZone.classList.add("dragover");
@@ -194,11 +222,12 @@ document.getElementById("file").addEventListener("change", e => {
   handleFile(e.target.files[0]);
 });
 
+// ================= UPLOAD =================
 async function handleFile(file) {
   const formData = new FormData();
   formData.append("file", file);
 
-  result.innerHTML = "⏳ Menganalisis...";
+  result.innerHTML = "⏳ Menganalisis laporan...";
 
   const res = await fetch(API + "/upload", {
     method: "POST",
@@ -212,9 +241,25 @@ async function handleFile(file) {
 
 // ================= FORMAT TEXT =================
 function formatText(text) {
-  return text
-    .replace(/\*\*(.*?)\*\*/g, "<b>$1</b>")
-    .replace(/\n/g, "<br>");
+  let html = text;
+
+  // Heading ##
+  html = html.replace(/^## (.*$)/gim, '<h2>$1</h2>');
+
+  // Sub heading ###
+  html = html.replace(/^### (.*$)/gim, '<h3>$1</h3>');
+
+  // Bold **
+  html = html.replace(/\*\*(.*?)\*\*/g, '<b>$1</b>');
+
+  // Bullet *
+  html = html.replace(/^\* (.*$)/gim, '<li>$1</li>');
+  html = html.replace(/(<li>.*<\/li>)/gim, '<ul>$1</ul>');
+
+  // Line break
+  html = html.replace(/\n/g, "<br>");
+
+  return html;
 }
 </script>
 

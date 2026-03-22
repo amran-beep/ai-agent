@@ -1,24 +1,20 @@
 import express from "express";
 
 const app = express();
-const PORT = process.env.PORT || 3000;
-
 app.use(express.json());
 
-// endpoint utama
+app.post("/chat", async (req, res) => {
+  const userMessage = req.body.message;
+
+  const reply = `Halo Amran 👋, kamu bilang: ${userMessage}`;
+
+  res.json({ reply });
+});
+
 app.get("/", (req, res) => {
-  res.send("Agen AI aktif 🚀");
+  res.send("AI Agent aktif 🚀");
 });
 
-// 🔥 endpoint AI (baru)
-app.post("/chat", (req, res) => {
-  const { message } = req.body;
-
-  res.json({
-    reply: "Kamu bilang: " + message,
-  });
-});
-
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
+app.listen(3000, () => {
+  console.log("Server jalan di port 3000");
 });

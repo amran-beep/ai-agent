@@ -213,7 +213,20 @@ msg.addEventListener("keydown", function(e) {
 
   msg.value = "";
 }
+function addImage(url) {
+  const div = document.createElement("div");
+  div.className = "msg ai";
 
+  const img = document.createElement("img");
+  img.src = url;
+  img.style.maxWidth = "100%";
+  img.style.borderRadius = "12px";
+
+  div.appendChild(img);
+  chat.appendChild(div);
+
+  chat.scrollTop = chat.scrollHeight;
+}
 // ================= MESSAGE =================
 function addMsg(text, type) {
   const div = document.createElement("div");

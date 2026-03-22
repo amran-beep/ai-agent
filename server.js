@@ -79,7 +79,7 @@ JANGAN:
         "Content-Type": "application/json"
       },
       body: JSON.stringify({
-        model: "openrouter/auto",
+       model: "meta-llama/llama-3-8b-instruct",
         messages: memory[userId],
         temperature: 0.8
       })

@@ -51,15 +51,7 @@ Contoh gaya:
 "oke kita coba gini ya..."
 "sebentar ya, aku jelasin..."
 `;
-let prompt = message;
 
-if (message.toLowerCase().includes("gambar")) {
-  prompt += "\nUser ingin membuat gambar. Berikan prompt gambar yang detail.";
-}
-
-if (message.toLowerCase().includes("upload")) {
-  prompt += "\nUser ingin upload. Jelaskan langkah praktis.";
-}
 app.post("/chat", async (req, res) => {
   try {
     const { message } = req.body;

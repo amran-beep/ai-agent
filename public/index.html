@@ -1,97 +1,77 @@
 <!DOCTYPE html>
 <html lang="id">
 <head>
-  <meta charset="UTF-8">
-  <title>AI Amran Premium</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta charset="UTF-8">
+<title>LinguaLive AI</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-  <style>
-    body {
-      margin: 0;
-      font-family: Arial;
-      background: linear-gradient(135deg, #0f172a, #020617);
-      color: white;
-      text-align: center;
-    }
+<style>
+body {
+  margin: 0;
+  font-family: Arial;
+  background: linear-gradient(135deg, #0f172a, #020617);
+  color: white;
+}
 
-    header {
-      padding: 20px;
-      font-size: 22px;
-      font-weight: bold;
-    }
+.container {
+  max-width: 900px;
+  margin: auto;
+  padding: 20px;
+}
 
-    .container {
-      max-width: 800px;
-      margin: auto;
-      padding: 20px;
-    }
+h1 {
+  text-align: center;
+}
 
-    .upload-box {
-      border: 2px dashed #444;
-      padding: 25px;
-      border-radius: 10px;
-      margin-bottom: 20px;
-    }
+#chatBox {
+  height: 350px;
+  overflow-y: auto;
+  background: #020617;
+  padding: 15px;
+  border-radius: 10px;
+}
 
-    .chat-input {
-      display: flex;
-      gap: 10px;
-    }
+.user { color: #38bdf8; }
+.ai { color: #4ade80; }
 
-    .chat-input input {
-      flex: 1;
-      padding: 12px;
-      border-radius: 8px;
-      border: none;
-    }
+.input-box {
+  display: flex;
+  gap: 10px;
+  margin-top: 10px;
+}
 
-    .chat-input button {
-      padding: 12px 20px;
-      border: none;
-      border-radius: 8px;
-      background: #22c55e;
-      color: white;
-      cursor: pointer;
-    }
+input {
+  flex: 1;
+  padding: 12px;
+  border-radius: 8px;
+  border: none;
+}
 
-    #chatBox {
-      text-align: left;
-      margin-top: 20px;
-      background: #020617;
-      padding: 15px;
-      border-radius: 10px;
-      height: 300px;
-      overflow-y: auto;
-    }
+button {
+  padding: 12px;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+}
 
-    .user { color: #38bdf8; }
-    .ai { color: #4ade80; }
-  </style>
+.mic { background: orange; }
+.send { background: green; color: white; }
+
+</style>
 </head>
 
 <body>
 
-<header>🚀 AI Amran Premium</header>
-
 <div class="container">
+  <h1>🎤 LinguaLive AI</h1>
 
-  <!-- UPLOAD -->
-  <div class="upload-box">
-    <h3>📄 Upload Laporan</h3>
-    <input type="file" id="fileInput">
-    <br><br>
-    <button onclick="uploadFile()">Upload</button>
-  </div>
-
-  <!-- CHAT -->
-  <div class="chat-input">
-    <input type="text" id="message" placeholder="Tulis pesan..." onkeypress="handleEnter(event)">
-    <button onclick="sendMessage()">Kirim</button>
-  </div>
-
-  <!-- CHAT BOX -->
   <div id="chatBox"></div>
 
+  <div class="input-box">
+    <button class="mic" onclick="startVoice()">🎙️</button>
+    <input id="message" placeholder="Ketik pesan...">
+    <button class="send" onclick="sendMessage()">Kirim</button>
+  </div>
 </div>
 
 <script>
@@ -105,16 +85,12 @@ function addChat(text, type) {
   box.scrollTop = box.scrollHeight;
 }
 
-function handleEnter(e) {
-  if (e.key === "Enter") sendMessage();
-}
-
-// CHAT
+// SEND MESSAGE
 async function sendMessage() {
   const input = document.getElementById("message");
   const message = input.value;
 
-  if (!message) return alert("Isi pesan dulu!");
+  if (!message) return;
 
   addChat("User: " + message, "user");
   input.value = "";
@@ -128,27 +104,32 @@ async function sendMessage() {
   });
 
   const data = await res.json();
+
   addChat(data.reply, "ai");
+  speak(data.reply);
 }
 
-// UPLOAD
-async function uploadFile() {
-  const fileInput = document.getElementById("fileInput");
+// TEXT TO SPEECH
+function speak(text) {
+  const speech = new SpeechSynthesisUtterance(text);
+  speech.lang = "id-ID";
+  speech.rate = 1;
+  speech.pitch = 1;
+  speechSynthesis.speak(speech);
+}
 
-  if (!fileInput.files[0]) {
-    return alert("Pilih file dulu!");
-  }
+// VOICE INPUT
+function startVoice() {
+  const recognition = new webkitSpeechRecognition();
+  recognition.lang = "id-ID";
 
-  const formData = new FormData();
-  formData.append("file", fileInput.files[0]);
+  recognition.onresult = function(event) {
+    const text = event.results[0][0].transcript;
+    document.getElementById("message").value = text;
+    sendMessage();
+  };
 
-  const res = await fetch("/upload", {
-    method: "POST",
-    body: formData
-  });
-
-  const data = await res.json();
-  addChat(data.reply, "ai");
+  recognition.start();
 }
 </script>
 

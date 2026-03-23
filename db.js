@@ -1,29 +1,16 @@
-import sqlite3 from "sqlite3";
-import { open } from "sqlite";
+const sqlite3 = require("sqlite3").verbose();
 
-// fungsi untuk init database
-export async function initDB() {
-  const db = await open({
-    filename: "./database.db", // file database akan dibuat otomatis
-    driver: sqlite3.Database
-  });
+const db = new sqlite3.Database("./database.sqlite");
 
-  // buat tabel users & chats
-  await db.exec(`
-    CREATE TABLE IF NOT EXISTS users (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      email TEXT UNIQUE,
-      password TEXT
-    );
-
+db.serialize(() => {
+  db.run(`
     CREATE TABLE IF NOT EXISTS chats (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
-      userId INTEGER,
+      userId TEXT,
       message TEXT,
-      reply TEXT,
-      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-    );
+      reply TEXT
+    )
   `);
+});
 
-  return db;
-}
+module.exports = db;

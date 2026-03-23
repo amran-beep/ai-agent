@@ -3,78 +3,144 @@
 <head>
   <meta charset="UTF-8">
   <title>AI Amran Premium</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
   <style>
     body {
-      background: #0f172a;
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: linear-gradient(135deg, #0f172a, #020617);
       color: white;
-      font-family: Arial;
       text-align: center;
+    }
+
+    header {
+      padding: 20px;
+      font-size: 22px;
+      font-weight: bold;
+    }
+
+    .container {
+      max-width: 800px;
+      margin: auto;
       padding: 20px;
     }
 
-    .box {
-      border: 2px dashed #555;
-      padding: 30px;
-      margin: 20px auto;
-      width: 80%;
+    .upload-box {
+      border: 2px dashed #444;
+      padding: 25px;
+      border-radius: 10px;
+      margin-bottom: 20px;
     }
 
-    input, button {
-      padding: 10px;
-      margin: 10px;
-      width: 70%;
+    input[type="file"] {
+      margin-top: 10px;
     }
 
-    button {
-      background: green;
-      color: white;
+    .chat-input {
+      display: flex;
+      gap: 10px;
+      margin-top: 20px;
+    }
+
+    .chat-input input {
+      flex: 1;
+      padding: 12px;
+      border-radius: 8px;
       border: none;
+    }
+
+    .chat-input button {
+      padding: 12px 20px;
+      border: none;
+      border-radius: 8px;
+      background: #22c55e;
+      color: white;
       cursor: pointer;
     }
 
     #chatBox {
-      margin-top: 20px;
       text-align: left;
-      width: 80%;
-      margin-left: auto;
-      margin-right: auto;
+      margin-top: 20px;
+      background: #020617;
+      padding: 15px;
+      border-radius: 10px;
+      height: 300px;
+      overflow-y: auto;
+    }
+
+    .user {
+      color: #38bdf8;
+      margin-bottom: 5px;
+    }
+
+    .ai {
+      color: #4ade80;
+      margin-bottom: 10px;
+    }
+
+    .loading {
+      color: yellow;
     }
   </style>
 </head>
+
 <body>
 
-<h1>🚀 AI Amran Premium</h1>
+<header>🚀 AI Amran Premium</header>
 
-<div class="box">
-  <h3>Upload Laporan</h3>
-  <input type="file" id="fileInput">
-  <br>
-  <button onclick="uploadFile()">Upload</button>
+<div class="container">
+
+  <!-- UPLOAD -->
+  <div class="upload-box">
+    <h3>📄 Upload Laporan</h3>
+    <input type="file" id="fileInput">
+    <br><br>
+    <button onclick="uploadFile()">Upload</button>
+  </div>
+
+  <!-- CHAT -->
+  <div class="chat-input">
+    <input type="text" id="message" placeholder="Tulis pesan..." onkeypress="handleEnter(event)">
+    <button onclick="sendMessage()">Kirim</button>
+  </div>
+
+  <!-- CHAT BOX -->
+  <div id="chatBox"></div>
+
 </div>
-
-<div>
-  <input type="text" id="message" placeholder="Tulis pesan...">
-  <button onclick="sendMessage()">Kirim</button>
-</div>
-
-<div id="chatBox"></div>
 
 <script>
-const API_URL = "https://ai-agent-1-bqks.onrender.com"; // GANTI kalau domain beda
+const API_URL = "https://ai-agent-1-bqks.onrender.com";
 
-function addChat(text) {
+// tampilkan chat
+function addChat(text, type) {
   const div = document.createElement("div");
+  div.className = type;
   div.innerText = text;
   document.getElementById("chatBox").appendChild(div);
+
+  // auto scroll
+  const box = document.getElementById("chatBox");
+  box.scrollTop = box.scrollHeight;
+}
+
+// ENTER = kirim
+function handleEnter(e) {
+  if (e.key === "Enter") sendMessage();
 }
 
 // CHAT
 async function sendMessage() {
-  const message = document.getElementById("message").value;
+  const input = document.getElementById("message");
+  const message = input.value;
 
   if (!message) return alert("Isi pesan dulu!");
 
-  addChat("User: " + message);
+  addChat("User: " + message, "user");
+  input.value = "";
+
+  addChat("AI sedang berpikir...", "loading");
 
   try {
     const res = await fetch(API_URL + "/chat", {
@@ -87,15 +153,19 @@ async function sendMessage() {
 
     const data = await res.json();
 
-    addChat(data.reply);
+    // hapus loading
+    document.querySelector(".loading")?.remove();
+
+    addChat(data.reply, "ai");
 
   } catch (err) {
-    addChat("Error koneksi ❌");
+    document.querySelector(".loading")?.remove();
+    addChat("Gagal koneksi ke server ❌", "ai");
     console.error(err);
   }
 }
 
-// UPLOAD
+// UPLOAD FILE
 async function uploadFile() {
   const fileInput = document.getElementById("fileInput");
 
@@ -106,7 +176,7 @@ async function uploadFile() {
   const formData = new FormData();
   formData.append("file", fileInput.files[0]);
 
-  addChat("Uploading file...");
+  addChat("Uploading file...", "loading");
 
   try {
     const res = await fetch(API_URL + "/upload", {
@@ -116,10 +186,12 @@ async function uploadFile() {
 
     const data = await res.json();
 
-    addChat(data.reply);
+    document.querySelector(".loading")?.remove();
+    addChat(data.reply, "ai");
 
   } catch (err) {
-    addChat("Upload gagal ❌");
+    document.querySelector(".loading")?.remove();
+    addChat("Upload gagal ❌", "ai");
     console.error(err);
   }
 }

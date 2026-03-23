@@ -19,18 +19,42 @@ const upload = multer({ dest: "uploads/" });
 // ==========================
 // API CHAT
 // ==========================
-app.post("/chat", (req, res) => {
-  const { message } = req.body;
+app.post("/chat", async (req, res) => {
+  try {
+    const { message } = req.body;
 
-  if (!message) {
-    return res.json({ reply: "Pesan kosong ❌" });
+    const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${process.env.OPENROUTER_API_KEY}`,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        model: "openai/gpt-4o-mini",
+        messages: [
+          {
+            role: "system",
+            content: "Kamu adalah AI Amran, asisten bisnis pintar."
+          },
+          {
+            role: "user",
+            content: message
+          }
+        ]
+      })
+    });
+
+    const data = await response.json();
+
+    const reply = data.choices[0].message.content;
+
+    res.json({ reply });
+
+  } catch (err) {
+    console.error(err);
+    res.json({ reply: "AI error ❌" });
   }
-
-  res.json({
-    reply: "AI Amran: " + message
-  });
 });
-
 // ==========================
 // API UPLOAD
 // ==========================

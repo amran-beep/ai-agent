@@ -1,7 +1,7 @@
 {
   "name": "ai-amran",
   "version": "1.0.0",
-  "description": "AI Amran Stable",
+  "description": "AI Amran Full Stable",
   "main": "server.js",
   "scripts": {
     "start": "node server.js"

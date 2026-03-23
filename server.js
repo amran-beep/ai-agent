@@ -1,24 +1,40 @@
 const express = require("express");
 const cors = require("cors");
-const multer = require("multer");
 const path = require("path");
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// middleware
 app.use(cors());
 app.use(express.json());
-
-// 🔥 STATIC PUBLIC (PENTING)
 app.use(express.static(path.join(__dirname, "public")));
 
-// upload config
-const upload = multer({ dest: "uploads/" });
+const SYSTEM_PROMPT = `
+Kamu adalah LinguaLive AI, AI live streaming assistant.
 
-// ==========================
-// API CHAT
-// ==========================
+Gaya:
+- Santai, seperti streamer
+- Kadang bilang: "teman-teman", "guys"
+- Gunakan:
+  "nah..."
+  "oke..."
+  "sebentar ya..."
+
+Aturan:
+- Maks 2–4 kalimat
+- Jangan panjang
+- Natural speaking
+- Multi bahasa
+
+Mode:
+- Translate → format:
+  Asli:
+  ...
+  Terjemahan:
+  ...
+- Belajar bahasa → contoh + penjelasan singkat
+`;
+
 app.post("/chat", async (req, res) => {
   try {
     const { message } = req.body;
@@ -32,53 +48,28 @@ app.post("/chat", async (req, res) => {
       body: JSON.stringify({
         model: "openai/gpt-4o-mini",
         messages: [
-          {
-            role: "system",
-            content: "Kamu adalah AI Amran, asisten bisnis pintar."
-          },
-          {
-            role: "user",
-            content: message
-          }
+          { role: "system", content: SYSTEM_PROMPT },
+          { role: "user", content: message }
         ]
       })
     });
 
     const data = await response.json();
 
-    const reply = data.choices[0].message.content;
-
-    res.json({ reply });
+    res.json({
+      reply: data.choices[0].message.content
+    });
 
   } catch (err) {
     console.error(err);
-    res.json({ reply: "AI error ❌" });
+    res.json({ reply: "Eh bentar ya guys, error dikit 😅" });
   }
 });
-// ==========================
-// API UPLOAD
-// ==========================
-app.post("/upload", upload.single("file"), (req, res) => {
-  res.json({
-    reply: "File berhasil diupload 📄"
-  });
-});
 
-// ==========================
-// ROOT → INDEX.HTML
-// ==========================
-app.get("/", (req, res) => {
-  res.sendFile(path.join(__dirname, "public", "index.html"));
-});
-
-// ==========================
-// ANTI NOT FOUND
-// ==========================
 app.get("*", (req, res) => {
   res.sendFile(path.join(__dirname, "public", "index.html"));
 });
 
-// start server
 app.listen(PORT, () => {
-  console.log("Server jalan di port", PORT);
+  console.log("LinguaLive AI running 🚀");
 });

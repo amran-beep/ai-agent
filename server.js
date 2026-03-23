@@ -10,18 +10,13 @@ const PORT = process.env.PORT || 3000;
 app.use(cors());
 app.use(express.json());
 
-// static file (WAJIB)
-app.use(express.static(path.join(__dirname)));
+// WAJIB: static folder
+app.use(express.static(__dirname));
 
 // upload config
 const upload = multer({ dest: "uploads/" });
 
-// ROOT → tampilkan index.html
-app.get("/", (req, res) => {
-  res.sendFile(path.join(__dirname, "index.html"));
-});
-
-// CHAT
+// CHAT API
 app.post("/chat", (req, res) => {
   const { message } = req.body;
 
@@ -34,14 +29,24 @@ app.post("/chat", (req, res) => {
   });
 });
 
-// UPLOAD
+// UPLOAD API
 app.post("/upload", upload.single("file"), (req, res) => {
   res.json({
     reply: "File berhasil diupload 📄"
   });
 });
 
-// START SERVER
+// 🔥 FIX UTAMA: route root
+app.get("/", (req, res) => {
+  res.sendFile(path.join(__dirname, "index.html"));
+});
+
+// 🔥 FIX TAMBAHAN (ANTI NOT FOUND)
+app.use((req, res) => {
+  res.sendFile(path.join(__dirname, "index.html"));
+});
+
+// start
 app.listen(PORT, () => {
   console.log("Server jalan di port", PORT);
 });
